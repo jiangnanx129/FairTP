@@ -1,4 +1,3 @@
-# 1111
 # The LargeST Benchmark Dataset
 
 This is the official repository of our manuscript [LargeST: A Benchmark Dataset for Large-Scale Traffic Forecasting](https://arxiv.org/pdf/2306.08259.pdf). LargeST comprises four sub-datasets, each characterized by a different number of sensors. The biggest one is California (CA), including a total number of 8,600 sensors. We also construct three subsets of CA by selecting three representative areas within CA and forming the sub-datasets of Greater Los Angeles (GLA), Greater Bay Area (GBA), and San Diego (SD). The figure here shows an illustration.
