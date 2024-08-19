@@ -48,7 +48,7 @@ def get_config():
     args = parser.parse_args()
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
-    logger = get_logger(log_dir, __name__, 'record_s{}_SD_3_1e-4_S_b42_T12_all.log'.format(args.seed))
+    logger = get_logger(log_dir, __name__, 'record_s{}_SD_3_1e-4_S_b42_T12_all2.log'.format(args.seed))
     logger.info(args)
     logger.info("学习率不变")
     
@@ -76,7 +76,11 @@ def main():
     
     # 有adj要注意！！！
     data_path, adj_path, node_num = get_dataset_info(args.dataset)
-    adj_path = '/home/data/xjn/23largest_baseline/LargeST/data/sd/sd_rn_adj_all1.npy' # 完整的邻接矩阵，不是采样过的
+    '''原始'''
+    # adj_path = '/home/data/xjn/23largest_baseline/LargeST/data/sd/sd_rn_adj_all1.npy' # 完整的邻接矩阵，不是采样过的
+    # logger.info('Adj path: ' + adj_path)
+
+    adj_path = '/home/data/xjn/23largest_baseline/LargeST/data/sd/sd_rn_adj.npy' # 完整的邻接矩阵，不是采样过的
     logger.info('Adj path: ' + adj_path)
     
     adj_mx = load_adj_from_numpy(adj_path) # 读取邻接矩阵

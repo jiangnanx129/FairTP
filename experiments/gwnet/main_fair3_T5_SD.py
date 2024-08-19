@@ -35,15 +35,15 @@ def get_config():
     parser.add_argument('--skip_dim', type=int, default=256)
     parser.add_argument('--end_dim', type=int, default=512)
 
-    parser.add_argument('--lrate', type=float, default=1e-2) # 1e-3
-    parser.add_argument('--wdecay', type=float, default=1e-3) # 1e-4
+    parser.add_argument('--lrate', type=float, default=1e-3) # 1e-3
+    parser.add_argument('--wdecay', type=float, default=1e-4) # 1e-4
     parser.add_argument('--dropout', type=float, default=0.3)
     parser.add_argument('--clip_grad_value', type=float, default=5)
     parser.add_argument('--yl_values', type=float, default=0.05) # 优劣标签
     # add
     parser.add_argument('--T_dynamic', type=int, default=3) # 动态时间为3个epoch
     parser.add_argument('--sam_num', type=int, default='200', help='sample sum')
-    parser.add_argument('--d_lrate', type=int, default=1e-2, help='dis lr') # 鉴别器lr
+    parser.add_argument('--d_lrate', type=int, default=1e-3, help='dis lr') # 鉴别器lr
     parser.add_argument('--n_number', type=int, default='300', help='counts of sample') # C938_nnumber
     parser.add_argument('--a_loss3', type=float, default= 0.01)
     parser.add_argument('--a_loss4', type=float, default= 0.1)
@@ -51,9 +51,9 @@ def get_config():
     args = parser.parse_args()
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
-    logger = get_logger(log_dir, __name__, 'record_s{}_SD5_4.log'.format(args.seed))
+    logger = get_logger(log_dir, __name__, 'record_s{}_SD5_2.log'.format(args.seed))
     logger.info(args)
-    logger.info("不改变学习率。用的record_s2018_SD_3_1e-2_S，学习率默认")
+    logger.info("不改变学习率。用的record_s2018_SD_3_1e-3_S，学习率默认")
     
     return args, log_dir, logger
 

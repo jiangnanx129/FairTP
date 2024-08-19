@@ -52,3 +52,11 @@ python /home/data/xjn/23largest_baseline/LargeST/experiments/fairgnn/main_fair.p
 
 
 python /home/data/xjn/23largest_baseline/LargeST/experiments/dcrnn/main.py --device cuda:0 --dataset HKALL --years 202010 --model_name dcrnn --seed 2018 --bs 48 --mode test
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/dcrnn/main_fair3_T5.py --device cuda:3 --dataset HK2 --years 202010 --model_name dcrnn --seed 2018 --bs 48 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/dcrnn/main_fair3_T5_SD.py --device cuda:2 --dataset SD --years 20191w --model_name dcrnn --seed 2018 --bs 48 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/dcrnn/main_fair3_T5_SD_fsample.py --device cuda:2 --dataset SD --years 20191w --model_name dcrnn --seed 2018 --bs 48 --mode test
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/dcrnn/main_fairS_all.py --device cuda:3 --dataset HKALL --years 202010 --model_name dcrnn --seed 2018 --bs 48 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/dcrnn/main_fairS_SD_all.py --device cuda:2 --dataset HKALLSD --years 20191w --model_name dcrnn --seed 2018 --bs 48 --mode test

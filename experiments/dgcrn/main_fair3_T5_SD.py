@@ -53,7 +53,7 @@ def get_config():
     args = parser.parse_args()
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
-    logger = get_logger(log_dir, __name__, 'record_s{}_SD5_3.log'.format(args.seed))
+    logger = get_logger(log_dir, __name__, 'record_s{}_SD5_2.log'.format(args.seed))
     logger.info(args)
     logger.info("不改变学习率。用的record_s2018_SD_3_1e-4_S_b42，学习率默认")
     

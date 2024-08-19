@@ -1,7 +1,7 @@
 import torch
 from src.base.engine import BaseEngine
 # from src.utils.metrics import masked_mape, masked_rmse
-from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae
+from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae, masked_mae_region, masked_mape_region, cal_RSF
 from src.utils.metrics_region import masked_mae2
 
 import time
@@ -87,11 +87,11 @@ class DGCRN_Engine(BaseEngine):
     def save_model(self, save_path):
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        filename = 'final_model_s{}_SD5_3.pt'.format(self._seed)
+        filename = 'final_model_s{}_SD5_2.pt'.format(self._seed)
         torch.save(self.model.state_dict(), os.path.join(save_path, filename))
     
     def load_model(self, save_path):
-        filename = 'final_model_s{}_SD5_3.pt'.format(self._seed)
+        filename = 'final_model_s{}_SD5_2.pt'.format(self._seed)
         self.model.load_state_dict(torch.load(
             os.path.join(save_path, filename)))
 
@@ -172,7 +172,7 @@ class DGCRN_Engine(BaseEngine):
             mape = masked_mape(new_pred, new_label, mask_value).item()
             rmse = masked_rmse(new_pred, new_label, mask_value).item()
             
-            loss3, values_region = static_cal(new_pred, new_label, self._device) # 静态公平正则化
+            loss3 = static_cal(new_pred, new_label, self._device) # 静态公平正则化
             
             '''每来一次数据都计算，保证整个训练过程的公平，返回给采样(不知道要不要带梯度)'''
             yl_global = get_yl_batch_global(yl_global, dis_out, sample_map) # 键0-938，值对应yl
@@ -353,7 +353,7 @@ class DGCRN_Engine(BaseEngine):
 
         yl_global = {}
 
-        loss_region_list = []
+        loss_region_list, loss_region_list_mape = [],[]
 
         batch_count = 0
         with torch.no_grad():
@@ -363,6 +363,9 @@ class DGCRN_Engine(BaseEngine):
 
                 X, label= X[:, :, sample_list, :], label[:, :, sample_list, :] # (b,t,938,ci)--->(b,t,450,ci)
                 supports = get_sample_adj(sample_list, self.adj_mx, self._device)
+                
+                self._task_level = 12
+                
                 pred, dis_out = self.model(X, supports, label, self._iter_cnt, self._task_level)
             
                 pred, label = self._inverse_transform([pred, label])
@@ -380,7 +383,8 @@ class DGCRN_Engine(BaseEngine):
                     mask_value = new_label.min()
 
                 '''看13个区域的情况'''
-                loss_region = masked_mae2(new_pred, new_label, mask_value)
+                loss_region = masked_mae_region(new_pred, new_label, mask_value)
+                loss_region_mape = masked_mape_region(new_pred, new_label, mask_value)
 
 
                 mask_value_single = torch.tensor(0)
@@ -399,7 +403,7 @@ class DGCRN_Engine(BaseEngine):
                 loss1 = self._loss_fn(new_pred, new_label, mask_value)
                 mape = masked_mape(new_pred, new_label, mask_value).item()
                 rmse = masked_rmse(new_pred, new_label, mask_value).item()
-                loss3, values_region = static_cal(new_pred, new_label, self._device) # 静态公平正则化
+                loss3 = static_cal(new_pred, new_label, self._device) # 静态公平正则化
 
                 '''每来一次数据都计算，保证整个训练过程的公平，返回给采样(不知道要不要带梯度)'''
                 yl_global = get_yl_batch_global(yl_global, dis_out, sample_map) # 键0-938，值对应yl
@@ -409,35 +413,19 @@ class DGCRN_Engine(BaseEngine):
                 if (batch_count+1)% time_T == 0:
                     
                     '''原来dynamic_cal5_global_T3，TF3娶了负值'''
-                    # loss4, values_node = dynamic_cal5_global_T3(yl_global, self.district13_road_index, self._device)
-                    # loss4, values_node = dynamic_cal5_global_TF3(yl_global, self.district13_road_index, self._device)
-                    loss4 = dynamic_cal5_global_T3_one(yl_global, self.district13_road_index, self._device)
+                    loss4, values_node = dynamic_cal5_global_T3(yl_global, self.district13_road_index, self._device)
                     edynamic_fair.append(loss4.item())
 
-                    # 考虑动态公平的采样
-                    # sample_list, node_count_global = \
-                    #     optimize_selection_T_loss4(self.district13_road_index, self.sample_num, node_count_global, values_node, self._device)
+                    sample_list = \
+                        optimize_selection_T_14(self.district13_road_index, self.sample_num, values_node, self._device )
                     
-                    # 考虑静动态公平的采样,1234
-                    # sample_list, node_count_global = \
-                    #     optimize_selection_T_loss34(self.district13_road_index, self.sample_num, node_count_global, values_region, values_node, self._device )
-
-                    # # 只用14,greedy, T_14
-                    # sample_list = \
-                    #     optimize_selection_T_14(self.district13_road_index, self.sample_num, values_node, self._device )
-
-                    # 14，但同级别，greedy
-                    # sample_list = \
-                    #     optimize_selection_T_14_equal(self.district13_road_index, self.sample_num, values_node, self._device )
-                
-
-                    # sample_list, node_count_global = optimize_selection(self.district13_road_index, self.sample_num, node_count_global)
-                    # sample_map = sum_map(sample_list, self.sample_num)
-                    # sample_dict = sample_map_district(sample_list, self.district13_road_index)
-                    # district_nodes = get_district_nodes(sample_dict, sample_map)
-            
-                    # edynamic_fair_T.append(loss4_T.item())
+                    sample_map = sum_map(sample_list, self.sample_num)
+                    sample_dict = sample_map_district(sample_list, self.district13_road_index)
+                    district_nodes = get_district_nodes(sample_dict, sample_map)
+                    
+                    
                     yl_global.clear() # 清空字典
+
                 else:
                     loss4=-1
 
@@ -457,9 +445,10 @@ class DGCRN_Engine(BaseEngine):
 
                 if mode == "test":
                     loss_region_list.append(loss_region)
-
+                    loss_region_list_mape.append(loss_region_mape)
 
                 batch_count += 1
+                self._iter_cnt += 1
 
         if mode == 'val':
             mvalid_loss, mvalid_mape, mvalid_mape2, mvalid_rmse, mvalidd_loss, mvalid_sfair, mvalid_dfair\
@@ -481,4 +470,14 @@ class DGCRN_Engine(BaseEngine):
             print(loss_region_tensor.shape)
             mean_values = loss_region_tensor.mean(dim=0)
             print(mean_values)
+            self._logger.info("mae")
             self._logger.info(mean_values)
+
+            loss_region_tensor_mape = torch.stack(loss_region_list_mape,dim=0)
+            mean_values_mape = loss_region_tensor_mape.mean(dim=0)
+            self._logger.info("mape")
+            self._logger.info(mean_values_mape)
+
+            RSF = cal_RSF(mean_values_mape) # mean_values_mape为 list
+            self._logger.info("RSF:")
+            self._logger.info(RSF)

@@ -3,27 +3,62 @@ import numpy as np
 import sys
 import os
 import time
-file_path = os.path.abspath(__file__) # /home/data/xjn/8fairness/src/engines/dcrnn_engine.py
-# print(file_path)
-# current_directory = os.getcwd()
-# print(current_directory)
 
-# from src.base.engine import BaseEngine # special
-# from src.utils.metrics import masked_mape, masked_rmse
-# from src.utils.metrics import compute_all_metrics
 import random
 from src.utils.metrics_region import masked_mae3, masked_mape3
 from src.utils.metrics_region import masked_mape3_2
 import torch.nn.functional as F
+from collections import Counter
+import statistics
+
+file_path = os.path.abspath(__file__) # /home/data/xjn/8fairness/src/engines/dcrnn_engine.py
+# device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+
 '''
 不同于T, 动态的计算不是450，而是(b,t,n,c)
 '''
-from collections import Counter
 
-# def merge_dicts(dict1, dict2, dict3):
-#     merged_dict = Counter(dict1) + Counter(dict2) + Counter(dict3)
-#     return dict(merged_dict)
 
+def fairst_cal(pred, label, region_ratio):
+    '''
+    pred: (b,t,n_r,c)
+    label: (b,t,n_r,c)
+    region: list, len = n_r
+    '''
+    a = []
+    for i in range(pred.shape[2]-1): # 区域数量，13
+        for j in range(i + 1, pred.shape[2]):   
+            a.append(torch.mean(torch.abs(pred[:,:,i]/region_ratio[i] - pred[:,:,j]/region_ratio[j]))) # 此处sum加的是b*t的时间维度
+            
+        a_mean = torch.mean(torch.stack(a), dim=0)
+
+    return a_mean
+
+
+def sanet_cal(pred, label, region_ratio):
+    '''
+    pred: (b,t,n_r,c)
+    label: (b,t,n_r,c)
+    region: list, len = n_r
+    '''
+    # 计算均值
+    mean_value = statistics.mean(region_ratio)
+
+    # 计算标准差
+    std_dev = statistics.stdev(region_ratio)
+
+    a = 0
+    for i in range(pred.shape[2]): # 区域数量，13
+        mape_i = torch.sum(torch.abs(pred[:, :, i] - label[:, :, i]) / label[:, :, i] )
+        xi_mape_i = abs((region_ratio[i]-mean_value)/std_dev)
+        # print(xi_mape_i)
+        a += mape_i * xi_mape_i
+
+    return a
+
+
+
+# 从多个字典中统计所有键值，相同的键，值累加
 def merge_dicts(*dicts):
     counters = [Counter(d) for d in dicts]
     merged_counter = sum(counters, Counter())
@@ -31,21 +66,18 @@ def merge_dicts(*dicts):
     return merged_dict
 
 
-# device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
-
-# 希望输出是每个区域一个(b,t,1)
-def static_cal(pred,label, device): # (b, t, 13, 1), 13表示区域数量，1表示预测的交通值维度
+# YES RSF静态公平计算，区域两两之间的mape的差的和
+def static_cal(pred, label, device): # (b, t, 13, 1), 13表示区域数量，1表示预测的交通值维度
     b, t = pred.shape[0], pred.shape[1]
     pred = pred.reshape(b * t, -1) # 将 pred 和 label 转换为形状为 (b*t, 13)
     label = label.reshape(b * t, -1)
 
     mape_diff = [] # torch.zeros((78,))
-    region_mape_list = [] # 最终长度为13, 每个区域的mape，值大误差大 要多数采样
+    
     # 计算 MAPE 差值
     idx = 0
-    for i in range(pred.shape[1]-1): # 区域数量-1-->13-1=12 # i = 0123456789--11
+    for i in range(pred.shape[1]-1): # 区域数量，13
         mape_i = torch.abs(pred[:, i] - label[:, i]) / label[:, i] # 区域i的mape
-        region_mape_list.append(1/torch.sum(mape_i))
         for j in range(i + 1, pred.shape[1]):
             mape_j = torch.abs(pred[:, j] - label[:, j]) / label[:, j] # 区域j的mape
             # mape_diff[idx] = torch.mean(mape_i - mape_j)
@@ -54,14 +86,82 @@ def static_cal(pred,label, device): # (b, t, 13, 1), 13表示区域数量，1表
             idx += 1
 
     mape_diff_mean = torch.mean(torch.stack(mape_diff), dim=0)
-    region_mape_list.append(1/(torch.sum(torch.abs(pred[:, -1] - label[:, -1]) / label[:, -1]))) # 加上最后一个区域的概率，mape
+    
+    return mape_diff_mean
 
-    '''1/：误差越大，1/越小，我们的目标是，多采样误差大的，也就是找sigmoid后小的！！！'''
-    # region_mape_list中元素6百到2000
-    _,norm_tensor = normalize_list(region_mape_list) # 归一化
-    values_region = torch.sigmoid(norm_tensor).to(device) # 输出限定在0到1之间，将输出解释为正类的概率（二分类）
 
-    return mape_diff_mean, values_region # each为长为13的list 对应0-12个区域
+# YES RSF静态公平计算，区域两两之间的mape的差的和
+def static_cal3_a(pred, label, device): # (b, t, 13, 1), 13表示区域数量，1表示预测的交通值维度
+    b, t = pred.shape[0], pred.shape[1]
+    pred = pred.reshape(b * t, -1) # 将 pred 和 label 转换为形状为 (b*t, 13)
+    label = label.reshape(b * t, -1)
+
+    mape_diff = [] # torch.zeros((78,))
+    
+    # 计算 MAPE 差值
+    idx = 0
+    for i in range(pred.shape[1]-1): # 区域数量，13
+        mape_i = torch.abs(pred[:, i] - label[:, i]) / pred[:, i] # 区域i的mape
+        for j in range(i + 1, pred.shape[1]):
+            mape_j = torch.abs(pred[:, j] - label[:, j]) / pred[:, j] # 区域j的mape
+            # mape_diff[idx] = torch.mean(mape_i - mape_j)
+            # mape_diff.append(torch.abs(torch.sum(mape_i - mape_j))) # mean换成sum 
+            mape_diff.append(torch.mean(torch.abs(mape_i - mape_j))) # 此处sum加的是b*t的时间维度
+            idx += 1
+
+    mape_diff_mean = torch.sum(torch.stack(mape_diff), dim=0)
+    
+    return mape_diff_mean
+
+
+
+# YES RSF静态公平计算，区域两两之间的mape的差的和
+def static_cal2(pred, label, device): # (b, t, 13, 1), 13表示区域数量，1表示预测的交通值维度
+    b, t = pred.shape[0], pred.shape[1]
+    pred = pred.reshape(b * t, -1) # 将 pred 和 label 转换为形状为 (b*t, 13)
+    label = label.reshape(b * t, -1)
+
+    mape_diff = [] # torch.zeros((78,))
+    
+    # 计算 MAPE 差值
+    idx = 0
+    for i in range(pred.shape[1]-1): # 区域数量，13
+        mape_i = torch.abs(pred[:, i] - label[:, i]) / label[:, i] # 区域i的mape
+        for j in range(i + 1, pred.shape[1]):
+            mape_j = torch.abs(pred[:, j] - label[:, j]) / label[:, j] # 区域j的mape
+            # mape_diff[idx] = torch.mean(mape_i - mape_j)
+            # mape_diff.append(torch.abs(torch.sum(mape_i - mape_j))) # mean换成sum 
+            mape_diff.append(torch.mean(torch.abs(mape_i - mape_j))) # 此处sum加的是b*t的时间维度
+            idx += 1
+
+    mape_diff_mean = torch.mean(torch.stack(mape_diff), dim=0)
+    
+    return mape_diff_mean
+
+
+# YES RSF静态公平计算，区域两两之间的mape的差的和
+def static_cal3(pred, label, device): # (b, t, 13, 1), 13表示区域数量，1表示预测的交通值维度
+    b, t = pred.shape[0], pred.shape[1]
+    pred = pred.reshape(b * t, -1) # 将 pred 和 label 转换为形状为 (b*t, 13)
+    label = label.reshape(b * t, -1)
+
+    mape_diff = [] # torch.zeros((78,))
+    
+    # 计算 MAPE 差值
+    idx = 0
+    for i in range(pred.shape[1]-1): # 区域数量，13
+        mape_i = torch.abs(pred[:, i] - label[:, i]) / label[:, i] # 区域i的mape
+        for j in range(i + 1, pred.shape[1]):
+            mape_j = torch.abs(pred[:, j] - label[:, j]) / label[:, j] # 区域j的mape
+            # mape_diff[idx] = torch.mean(mape_i - mape_j)
+            # mape_diff.append(torch.abs(torch.sum(mape_i - mape_j))) # mean换成sum 
+            mape_diff.append(torch.mean(torch.abs(mape_i - mape_j))) # 此处sum加的是b*t的时间维度
+            idx += 1
+
+    mape_diff_mean = torch.sum(torch.stack(mape_diff), dim=0)
+    
+    return mape_diff_mean
+
 
 
 
@@ -92,6 +192,31 @@ def static_cal_stgode(pred,label, device): # (b, t, 13, 1), 13表示区域数量
     return mape_diff_mean # each为长为13的list 对应0-12个区域
 
 
+def static_cal_stgode(pred,label, device): # (b, t, 13, 1), 13表示区域数量，1表示预测的交通值维度
+    b, t = pred.shape[0], pred.shape[1]
+    pred = pred.reshape(b * t, -1) # 将 pred 和 label 转换为形状为 (b*t, 13)
+    label = label.reshape(b * t, -1)
+
+    mape_diff = [] # torch.zeros((78,))
+    region_mape_list = [] # 最终长度为13, 每个区域的mape，值大误差大 要多数采样
+    # 计算 MAPE 差值
+    idx = 0
+    for i in range(pred.shape[1]-1): # 区域数量-1-->13-1=12 # i = 0123456789--11
+        mape_i = torch.abs(pred[:, i] - label[:, i]) / label[:, i] # 区域i的mape
+        region_mape_list.append(1/torch.sum(mape_i))
+        for j in range(i + 1, pred.shape[1]):
+            mape_j = torch.abs(pred[:, j] - label[:, j]) / label[:, j] # 区域j的mape
+            # mape_diff[idx] = torch.mean(mape_i - mape_j)
+            # mape_diff.append(torch.abs(torch.sum(mape_i - mape_j))) # mean换成sum 
+            mape_diff.append(torch.sum(torch.abs(mape_i - mape_j))) # 此处sum加的是b*t的时间维度
+            idx += 1
+
+    mape_diff_mean = torch.mean(torch.stack(mape_diff), dim=0)
+    region_mape_list.append(1/(torch.sum(torch.abs(pred[:, -1] - label[:, -1]) / label[:, -1]))) # 加上最后一个区域的概率，mape
+
+    '''1/：误差越大，1/越小，我们的目标是，多采样误差大的，也就是找sigmoid后小的！！！'''
+    
+    return mape_diff_mean # each为长为13的list 对应0-12个区域
 
 # 希望输出是每个区域一个(b,t,1)
 def static_cal2_mae(pred,label,mask_value, device): # (b, t, 13, 1), 13表示区域数量，1表示预测的交通值维度
@@ -387,7 +512,7 @@ def get_yl_batch(dis_out, sample_map): # sample_map键0-449，值0-938
     
     return yl_node_dic
 
-'''global效果，统计整个T时间的'''
+'''YES global效果，统计整个T时间的'''
 def get_yl_batch_global(yl_global, dis_out, sample_map): # sample_map键0-449，值0-938
     
     b,t,n,c = dis_out.shape

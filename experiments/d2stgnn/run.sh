@@ -19,3 +19,43 @@ python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_
 
 python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fairS_all.py --device cuda:0 --dataset HKALL --years 202010 --model_name d2stgnn --seed 2018 --patience 80 --bs 24
 python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fairS_SD_all.py --device cuda:1 --dataset HKALLSD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24
+
+
+
+######################################
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fairS_all_250.py --device cuda:2 --dataset HKALL --years 202010 --model_name d2stgnn --seed 2018 --patience 10 --bs 12
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fairS_SD_all_250.py --device cuda:2 --dataset HKALLSD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fairS_SD_all.py --device cuda:3 --dataset HKALLSD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5.py --device cuda:3 --dataset HK2 --years 202010 --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5_SD.py --device cuda:3 --dataset SD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fairS.py --device cuda:3 --dataset HK2 --years 202010 --model_name d2stgnn --seed 2018 --patience 80 --bs 24  --mode test
+
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair_fairst_1.py --device cuda:3 --dataset HKALL --years 202010 --model_name d2stgnn --seed 2018 --patience 10 --bs 12
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair_fairst_SD_1.py --device cuda:0 --dataset HKALLSD --years 20191w --model_name d2stgnn --seed 2018 --patience 10 --bs 12
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair_sanet_1.py --device cuda:3 --dataset HKALL --years 202010 --model_name d2stgnn --seed 2018 --patience 10 --bs 12
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair_sanet_SD_1.py --device cuda:3 --dataset HKALLSD --years 20191w --model_name d2stgnn --seed 2018 --patience 10 --bs 12
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fairS_SD_all_250.py --device cuda:3 --dataset HKALLSD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24
+
+
+
+
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5_noS.py --device cuda:3 --dataset HK2 --years 202010 --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5_noD.py --device cuda:3 --dataset HK2 --years 202010 --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5_noAS.py --device cuda:3 --dataset HK2 --years 202010 --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5_SD_noS.py --device cuda:3 --dataset SD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5_SD_noD.py --device cuda:3 --dataset SD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/d2stgnn/main_fair3_T5_SD_noAS.py --device cuda:3 --dataset SD --years 20191w --model_name d2stgnn --seed 2018 --patience 80 --bs 24 --mode test

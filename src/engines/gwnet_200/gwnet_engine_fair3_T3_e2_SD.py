@@ -1,7 +1,7 @@
 import torch
 from src.base.engine import BaseEngine
 # from src.utils.metrics import masked_mape, masked_rmse
-from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae
+from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae, masked_mae_region, masked_mape_region, cal_RSF
 from src.utils.metrics_region import masked_mae2
 
 import time
@@ -81,11 +81,11 @@ class GWNET_Engine(BaseEngine):
     def save_model(self, save_path):
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        filename = 'final_model_s{}_SD5_4.pt'.format(self._seed)
+        filename = 'final_model_s{}_SD5_2.pt'.format(self._seed)
         torch.save(self.model.state_dict(), os.path.join(save_path, filename))
     
     def load_model(self, save_path):
-        filename = 'final_model_s{}_SD5_4.pt'.format(self._seed)
+        filename = 'final_model_s{}_SD5_2.pt'.format(self._seed)
         self.model.load_state_dict(torch.load(
             os.path.join(save_path, filename)))
 
@@ -163,7 +163,7 @@ class GWNET_Engine(BaseEngine):
             mape = masked_mape(new_pred, new_label, mask_value).item()
             rmse = masked_rmse(new_pred, new_label, mask_value).item()
             
-            loss3, values_region = static_cal(new_pred, new_label, self._device) # 静态公平正则化
+            loss3 = static_cal(new_pred, new_label, self._device) # 静态公平正则化
             
             '''每来一次数据都计算，保证整个训练过程的公平，返回给采样(不知道要不要带梯度)'''
             yl_global = get_yl_batch_global(yl_global, dis_out, sample_map) # 键0-938，值对应yl
@@ -246,7 +246,7 @@ class GWNET_Engine(BaseEngine):
     
         self._logger.info('Start training!')
 
-        filename = 'ylvalue_s{}_SD_3_1e-2_node_mape2_S.pkl'.format(self._seed)
+        filename = 'ylvalue_s{}_SD_3_1e-3_node_mape2_S.pkl'.format(self._seed)
         with open(os.path.join(self._save_path, filename), 'rb') as f:
             loaded_lists = pickle.load(f)
             train_yllist, val_yllist = loaded_lists
@@ -344,7 +344,8 @@ class GWNET_Engine(BaseEngine):
 
         yl_global = {}
 
-        loss_region_list = []
+        loss_region_list, loss_region_list_mape = [],[]
+
 
         batch_count = 0
         with torch.no_grad():
@@ -370,7 +371,8 @@ class GWNET_Engine(BaseEngine):
                     mask_value = new_label.min()
 
                 '''看13个区域的情况'''
-                loss_region = masked_mae2(new_pred, new_label, mask_value)
+                loss_region = masked_mae_region(new_pred, new_label, mask_value)
+                loss_region_mape = masked_mape_region(new_pred, new_label, mask_value)
 
 
                 mask_value_single = torch.tensor(0)
@@ -389,7 +391,7 @@ class GWNET_Engine(BaseEngine):
                 loss1 = self._loss_fn(new_pred, new_label, mask_value)
                 mape = masked_mape(new_pred, new_label, mask_value).item()
                 rmse = masked_rmse(new_pred, new_label, mask_value).item()
-                loss3, values_region = static_cal(new_pred, new_label, self._device) # 静态公平正则化
+                loss3 = static_cal(new_pred, new_label, self._device) # 静态公平正则化
 
                 '''每来一次数据都计算，保证整个训练过程的公平，返回给采样(不知道要不要带梯度)'''
                 yl_global = get_yl_batch_global(yl_global, dis_out, sample_map) # 键0-938，值对应yl
@@ -447,6 +449,7 @@ class GWNET_Engine(BaseEngine):
 
                 if mode == "test":
                     loss_region_list.append(loss_region)
+                    loss_region_list_mape.append(loss_region_mape)
 
 
                 batch_count += 1
@@ -471,4 +474,14 @@ class GWNET_Engine(BaseEngine):
             print(loss_region_tensor.shape)
             mean_values = loss_region_tensor.mean(dim=0)
             print(mean_values)
+            self._logger.info("mae:")
             self._logger.info(mean_values)
+
+            loss_region_tensor_mape = torch.stack(loss_region_list_mape,dim=0)
+            mean_values_mape = loss_region_tensor_mape.mean(dim=0)
+            self._logger.info("mape:")
+            self._logger.info(mean_values_mape)
+
+            RSF = cal_RSF(mean_values_mape) # mean_values_mape为 list
+            self._logger.info("RSF:")
+            self._logger.info(RSF)

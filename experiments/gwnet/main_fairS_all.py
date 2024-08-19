@@ -10,7 +10,7 @@ import torch
 torch.set_num_threads(3)
 
 from src.models.gwnet import GWNET # 涉及到采样adj_list, baseline每T次重新采样！
-from src.engines.gwnet_200.gwnet_engineS_all import GWNET_Engine
+from src.engines.GWNET_250.gwnet_engineS_all import GWNET_Engine
 from src.utils.graph_algo import normalize_adj_mx
 from src.utils.args import get_public_config
 from src.utils.dataloader import load_dataset, load_dataset2, load_adj_from_numpy, get_dataset_info
@@ -33,19 +33,20 @@ def get_config():
     parser.add_argument('--skip_dim', type=int, default=256)
     parser.add_argument('--end_dim', type=int, default=512)
 
-    parser.add_argument('--lrate', type=float, default=1e-3) # 1e-3
-    parser.add_argument('--wdecay', type=float, default=1e-4) # 1e-4
+    parser.add_argument('--lrate', type=float, default=1e-2) # 1e-3
+    parser.add_argument('--wdecay', type=float, default=1e-3) # 1e-4
     parser.add_argument('--dropout', type=float, default=0.3)
     parser.add_argument('--clip_grad_value', type=float, default=5)
-    parser.add_argument('--yl_values', type=float, default=0.05) # 优劣标签
+    
     # add
-    parser.add_argument('--T_dynamic', type=int, default=3) # 动态时间为3个epoch
-    parser.add_argument('--sam_num', type=int, default='938', help='sample sum')
+    # parser.add_argument('--yl_values', type=float, default=0.05) # 优劣标签
+    # parser.add_argument('--T_dynamic', type=int, default=3) # 动态时间为3个epoch
+    # parser.add_argument('--sam_num', type=int, default='938', help='sample sum')
    
     args = parser.parse_args()
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
-    logger = get_logger(log_dir, __name__, 'record_s{}_HK_3_1e-3_S_all.log'.format(args.seed))
+    logger = get_logger(log_dir, __name__, 'record_s{}_HKALL_200_3.log'.format(args.seed))
     logger.info(args)
     # logger.info("学习率不变")
     
@@ -80,17 +81,21 @@ def main():
     adj_mx = normalize_adj_mx(adj_mx, args.adj_type)
     supports = [torch.tensor(i).to(device) for i in adj_mx]
 
-    # 初始化的分布，初始采样，baseline不变，Fairness每个batch改变！
-    ptr1 = np.load(os.path.join(data_path, args.years, 'his_initial200.npz'), allow_pickle=True) # his.npz为原始数据 (N,938,ci) ci=1
-    
-    sample_list, sample_dict, sample_map = ptr1['sample_list'], ptr1['sample_dict'].item(), ptr1['sample_map'].item() # 字典，加上item()
     # with open('data/sd/sd_district.json', 'rb') as file: # 打开 JSON 文件
     #     sd_district = pickle.load(file) # 读取文件内容, 字典
+    
     with open('data/hk/district13_roadindex.json', 'r') as file: # 打开 JSON 文件
         district13_road_index = json.load(file) # 读取文件内容, 字典
 
+
+
+    '''用全数据训练，采样数据测试'''
+    # 初始化的分布，初始采样，baseline不变，Fairness每个batch改变！
+    ptr1 = np.load(os.path.join(data_path, args.years, 'his_initial200.npz'), allow_pickle=True) # his.npz为原始数据 (N,938,ci) ci=1
+    sample_list, sample_dict, sample_map = ptr1['sample_list'], ptr1['sample_dict'].item(), ptr1['sample_map'].item() # 字典，加上item()
     district_nodes = get_district_nodes(sample_dict, sample_map) # 初始化的区域字典，键0-12，值list(0-449)
 
+    
 
     # dataloader, scaler = load_dataset(data_path, args, logger) # 注意在dataloader的函数中是200还是450
     dataloader, scaler = load_dataset2(data_path, args, logger) # 全数据
@@ -113,8 +118,8 @@ def main():
     
     engine = GWNET_Engine(adj_mx = adj_mx, 
                             adj_type = args.adj_type,
-                          T_dynamic = args.T_dynamic,
-                          sample_num = args.sam_num,
+                        #   T_dynamic = args.T_dynamic,
+                        #   sample_num = args.sam_num,
                           district13_road_index = district13_road_index,
                           
                           device=device,
@@ -134,11 +139,19 @@ def main():
                            seed=args.seed
                            )
 
+    '''全数据训练+测试'''
+    # if args.mode == 'train':
+        
+    #     engine.train(district13_road_index)
+    # else:
+    #     engine.evaluate(args.mode, district13_road_index, epoch=1)
+
+    '''全数据训练+采样测试'''
     if args.mode == 'train':
         
-        engine.train(sample_list, args.T_dynamic, args.yl_values, sample_map, district_nodes)
+        engine.train(district_nodes)
     else:
-        engine.evaluate(args.mode, sample_list, args.T_dynamic, args.yl_values, sample_map, district_nodes, epoch=1)
+        engine.evaluate(args.mode, district_nodes, epoch=1)
 
 
 if __name__ == "__main__":

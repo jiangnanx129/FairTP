@@ -341,3 +341,6 @@ class GWNET_Engine(BaseEngine):
             mean_values = loss_region_tensor.mean(dim=0)
             print(mean_values)
             self._logger.info(mean_values)
+
+
+

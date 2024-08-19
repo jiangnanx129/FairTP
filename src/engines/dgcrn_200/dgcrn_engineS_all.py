@@ -1,12 +1,13 @@
 import torch
 from src.base.engine import BaseEngine
 # from src.utils.metrics import masked_mape, masked_rmse
-from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae
-from src.utils.metrics_region import masked_mae2
+from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae, masked_mae_region, masked_mape_region, cal_RSF
+# from src.utils.metrics_region import masked_mae2
 
 import time
 import numpy as np
-from src.engines.IDF_baselines import *
+# from src.engines.IDF_baselines import *
+from src.engines.sample_T_single import *
 from src.engines.sample_optimal_greedy_T import *  # 先区域后节点
 import pickle
 from src.utils.graph_algo import normalize_adj_mx, calculate_cheb_poly
@@ -72,11 +73,11 @@ class DGCRN_Engine(BaseEngine):
     def save_model(self, save_path):
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        filename = 'final_model_s{}_HK_3_1e-4_S_b42_T12_all.pt'.format(self._seed)
+        filename = 'final_model_s{}_HK_3_1e-4_S_b30_T12_all.pt'.format(self._seed)
         torch.save(self.model.state_dict(), os.path.join(save_path, filename))
     
     def load_model(self, save_path):
-        filename = 'final_model_s{}_HK_3_1e-4_S_b42_T12_all.pt'.format(self._seed)
+        filename = 'final_model_s{}_HK_3_1e-4_S_b30_T12_all.pt'.format(self._seed)
         self.model.load_state_dict(torch.load(
             os.path.join(save_path, filename)))
 
@@ -147,9 +148,10 @@ class DGCRN_Engine(BaseEngine):
             
             # loss3_mae = static_cal2_mae(new_pred, new_label, mask_value)
             # loss3_mape = static_cal2_mape(new_pred, new_label, mask_value)
-            lpe, loss3_mape, loss3_mae = static_cal(new_pred,new_label) # 静态公平正则化
-            loss4 = dynamic_cal(pred, label, mask_value_single, yl_values, sample_map, district_nodes) # (b,t,n,co)
-            dynamic_fair.append(loss4.item())
+            loss3_mape = static_cal(new_pred,new_label,self._device)
+            # lpe, loss3_mape, loss3_mae = static_cal(new_pred,new_label) # 静态公平正则化
+            # loss4 = dynamic_cal(pred, label, mask_value_single, yl_values, sample_map, district_nodes) # (b,t,n,co)
+            # dynamic_fair.append(loss4.item())
                 
             
             loss.backward()
@@ -164,15 +166,18 @@ class DGCRN_Engine(BaseEngine):
             train_mae2.append(mae2)
 
             train_rmse.append(rmse)
-            static_fair.append(loss3_mae.item()) # mpe
-            static_fair_mae.append(loss3_mape.item()) # mae
+            # static_fair_mae.append(loss3_mae.item()) # mpe
+            static_fair.append(loss3_mape.item()) # mae
 
-            loss_message = 'Epoch: {:03d}, Batch_num:{:03d}, mape2:{:.4f}, Loss1: {:.4f}, Loss3_mae: {:.4f}, Loss3_mape: {:.4f}, Loss4: {:.4f}'
-            self._logger.info(loss_message.format(epoch + 1, batch_count+1, mape2, loss, loss3_mae, loss3_mape, loss4))
+            # loss_message = 'Epoch: {:03d}, Batch_num:{:03d}, mape2:{:.4f}, Loss1: {:.4f}, Loss3_mae: {:.4f}, Loss3_mape: {:.4f}, Loss4: {:.4f}'
+            # self._logger.info(loss_message.format(epoch + 1, batch_count+1, mape2, loss, loss3_mae, loss3_mape, loss4))
+            loss_message = 'Epoch: {:03d}, Batch_num:{:03d}, mape2:{:.4f}, Loss1: {:.4f}, Loss3_mape: {:.4f}'
+            self._logger.info(loss_message.format(epoch + 1, batch_count+1, mape2, loss, loss3_mape))
+
 
             self._iter_cnt += 1
             batch_count += 1
-        return np.mean(train_loss), np.mean(train_mape), np.mean(train_mape2), np.mean(train_mpe2), np.mean(train_mae2), np.mean(train_rmse), np.mean(static_fair), np.mean(dynamic_fair), np.mean(static_fair_mae)
+        return np.mean(train_loss), np.mean(train_mape), np.mean(train_mape2), np.mean(train_mpe2), np.mean(train_mae2), np.mean(train_rmse), np.mean(static_fair) # , np.mean(dynamic_fair)
 
 
 
@@ -187,11 +192,11 @@ class DGCRN_Engine(BaseEngine):
         min_loss = np.inf
         for epoch in range(self._max_epochs):
             t1 = time.time()
-            mtrain_loss, mtrain_mape, mtrain_mape2, mtrain_mpe2, mtrain_mae2, mtrain_rmse, mtrain_sfair, mtrain_dfair, mtrain_sfair_mae = self.train_batch(sample_list, time_T, yl_values, sample_map, district_nodes, epoch)
+            mtrain_loss, mtrain_mape, mtrain_mape2, mtrain_mpe2, mtrain_mae2, mtrain_rmse, mtrain_sfair = self.train_batch(sample_list, time_T, yl_values, sample_map, district_nodes, epoch)
             t2 = time.time()
 
             v1 = time.time()
-            mvalid_loss, mvalid_mape, mvalid_mape2, mvalid_mpe2, mvalid_mae2, mvalid_rmse, mvalid_sfair, mvalid_dfair, mvalid_sfair_mae = self.evaluate('val', sample_list, time_T, yl_values, sample_map, district_nodes, epoch)
+            mvalid_loss, mvalid_mape, mvalid_mape2, mvalid_mpe2, mvalid_mae2, mvalid_rmse, mvalid_sfair = self.evaluate('val', sample_list, time_T, yl_values, sample_map, district_nodes, epoch)
             v2 = time.time()
 
             if self._lr_scheduler is None:
@@ -205,17 +210,17 @@ class DGCRN_Engine(BaseEngine):
             #                                  mvalid_loss, mvalid_rmse, mvalid_mape, mvalid_sfair, mvalid_dfair, \
             #                                  (t2 - t1), (v2 - v1), cur_lr))
 
-            message = 'Epoch: {:03d}, Train mape2: {:.4f}, Train mpe2: {:.4f}, Train mae2: {:.4f}, Train Loss: {:.4f}, Train RMSE: {:.4f}, Train MAPE: {:.4f}, Train SFair_mae: {:.4f}, Train DFair: {:.4f}, Train SFair_mape: {:.4f}, Valid mape2: {:.4f}, Valid mpe2: {:.4f}, Valid mae2: {:.4f}, Valid Loss: {:.4f}, Valid RMSE: {:.4f}, Valid MAPE: {:.4f}, Valid SFair: {:.4f}, Valid DFair: {:.4f}, Valid SFair_mae: {:.4f}, Train Time: {:.4f}s/epoch, Valid Time: {:.4f}s, LR: {:.4e}'
-            self._logger.info(message.format(epoch + 1, mtrain_mape2, mtrain_mpe2, mtrain_mae2, mtrain_loss, mtrain_rmse, mtrain_mape, mtrain_sfair, mtrain_dfair, mtrain_sfair_mae,\
-                                             mvalid_mape2, mvalid_mpe2, mvalid_mae2, mvalid_loss, mvalid_rmse, mvalid_mape, mvalid_sfair, mvalid_dfair, mvalid_sfair_mae,\
+            message = 'Epoch: {:03d}, Train mape2: {:.4f}, Train mpe2: {:.4f}, Train mae2: {:.4f}, Train Loss: {:.4f}, Train RMSE: {:.4f}, Train MAPE: {:.4f}, Train SFair_mape: {:.4f}, Valid mape2: {:.4f}, Valid mpe2: {:.4f}, Valid mae2: {:.4f}, Valid Loss: {:.4f}, Valid RMSE: {:.4f}, Valid MAPE: {:.4f}, Valid SFair: {:.4f}, Train Time: {:.4f}s/epoch, Valid Time: {:.4f}s, LR: {:.4e}'
+            self._logger.info(message.format(epoch + 1, mtrain_mape2, mtrain_mpe2, mtrain_mae2, mtrain_loss, mtrain_rmse, mtrain_mape, mtrain_sfair,\
+                                             mvalid_mape2, mvalid_mpe2, mvalid_mae2, mvalid_loss, mvalid_rmse, mvalid_mape, mvalid_sfair,\
                                              (t2 - t1), (v2 - v1), cur_lr))
 
-            yl_list_train.append(mtrain_mpe2.item())
-            yl_list_val.append(mvalid_mpe2.item())
-            yl_list_train_node.append(mtrain_mae2.item())
-            yl_list_val_node.append(mvalid_mae2.item())
-            yl_list_train2.append(mtrain_mape2.item())
-            yl_list_val2.append(mvalid_mape2.item())
+            # yl_list_train.append(mtrain_mpe2.item())
+            # yl_list_val.append(mvalid_mpe2.item())
+            # yl_list_train_node.append(mtrain_mae2.item())
+            # yl_list_val_node.append(mvalid_mae2.item())
+            # yl_list_train2.append(mtrain_mape2.item())
+            # yl_list_val2.append(mvalid_mape2.item())
 
             if mvalid_loss < min_loss:
                 self.save_model(self._save_path)
@@ -229,19 +234,19 @@ class DGCRN_Engine(BaseEngine):
                     break
         
 
-        # 将两个列表存储到文件中
-        filename1 = 'ylvalue_s{}_HK_3_1e-4_node_mpe2_S_b42_T12_all.pkl'.format(self._seed)
-        with open(os.path.join(self._save_path, filename1), 'wb') as f:
-            pickle.dump((yl_list_train, yl_list_val), f)
+        # # 将两个列表存储到文件中
+        # filename1 = 'ylvalue_s{}_HK_3_1e-4_node_mpe2_S_b42_T12_all.pkl'.format(self._seed)
+        # with open(os.path.join(self._save_path, filename1), 'wb') as f:
+        #     pickle.dump((yl_list_train, yl_list_val), f)
 
-        filename2 = 'ylvalue_s{}_HK_3_1e-4_node_mae2_S_b42_T12_all.pkl'.format(self._seed)
-        with open(os.path.join(self._save_path, filename2), 'wb') as f:
-            pickle.dump((yl_list_train_node, yl_list_val_node), f)
+        # filename2 = 'ylvalue_s{}_HK_3_1e-4_node_mae2_S_b42_T12_all.pkl'.format(self._seed)
+        # with open(os.path.join(self._save_path, filename2), 'wb') as f:
+        #     pickle.dump((yl_list_train_node, yl_list_val_node), f)
 
-        # 用这个！计算的是mape！
-        filename1 = 'ylvalue_s{}_HK_3_1e-4_node_mape2_S_b42_T12_all.pkl'.format(self._seed)
-        with open(os.path.join(self._save_path, filename1), 'wb') as f:
-            pickle.dump((yl_list_train2, yl_list_val2), f)
+        # # 用这个！计算的是mape！
+        # filename1 = 'ylvalue_s{}_HK_3_1e-4_node_mape2_S_b42_T12_all.pkl'.format(self._seed)
+        # with open(os.path.join(self._save_path, filename1), 'wb') as f:
+        #     pickle.dump((yl_list_train2, yl_list_val2), f)
 
 
         self.evaluate('test', sample_list, time_T, yl_values, sample_map, district_nodes, epoch)
@@ -260,7 +265,7 @@ class DGCRN_Engine(BaseEngine):
         e_rmse = []
         e_mape2, e_mpe2, e_mae2 = [],[],[]
         estatic_fair_mae = []
-        loss_region_list = []
+        loss_region_list, loss_region_list_mape = [],[]
         
         estatic_fair, edynamic_fair =[],[]
         batch_count = 0
@@ -289,7 +294,8 @@ class DGCRN_Engine(BaseEngine):
                     mask_value = new_label.min()
 
                 '''看13个区域的情况'''
-                loss_region = masked_mae2(new_pred, new_label, mask_value)
+                loss_region = masked_mae_region(new_pred, new_label, mask_value)
+                loss_region_mape = masked_mape_region(new_pred, new_label, mask_value)
 
 
                 mask_value_single = torch.tensor(0)
@@ -307,10 +313,13 @@ class DGCRN_Engine(BaseEngine):
                 rmse = masked_rmse(new_pred, new_label, mask_value).item()
                 # loss3 = static_cal(new_pred,new_label) # 静态公平正则化
                 # loss4 = dynamic_cal(pred, label, mask_value_single, yl_values, sample_map, district_nodes) # (b,t,n,co)
-                lpe, loss3_mape, loss3_mae = static_cal(new_pred,new_label) # 静态公平正则化
+                # lpe, loss3_mape, loss3_mae = static_cal(new_pred,new_label) # 静态公平正则化
+                loss3_mape = static_cal(new_pred,new_label, self._device) # 静态公平正则化
+                
                 # loss4 = dynamic_cal(pred, label, mask_value_single, yl_values, sample_map, district_nodes) # (b,t,n,co)
-                loss4 = dynamic_cal(pred, label, mask_value_single, yl_values, sample_map, district_nodes) # (b,t,n,co)
-                edynamic_fair.append(loss4.item())
+                '''注释'''
+                # loss4 = dynamic_cal(pred, label, mask_value_single, yl_values, sample_map, district_nodes) # (b,t,n,co)
+                # edynamic_fair.append(loss4.item())
                     
 
                 # loss_message = 'Epoch: {:03d}, Batch_num:{:03d}, Loss1: {:.4f}, Loss3: {:.4f}, Loss4: {:.4f}'
@@ -323,33 +332,46 @@ class DGCRN_Engine(BaseEngine):
                 e_mae2.append(mae2)
 
                 e_rmse.append(rmse)
-                estatic_fair.append(loss3_mae.item())
-                estatic_fair_mae.append(loss3_mape.item())
+                # estatic_fair_mae.append(loss3_mae.item())
+                estatic_fair.append(loss3_mape.item())
 
-                loss_message = 'Epoch: {:03d}, Batch_num:{:03d}, mape2: {:.4f}, mpe2: {:.4f}, mae2: {:.4f}, Loss1: {:.4f}, Loss3_mae: {:.4f}, Loss3_mape: {:.4f}, Loss4: {:.4f}'
-                self._logger.info(loss_message.format(epoch + 1, batch_count+1, mape2, mpe2, mae2, loss, loss3_mae, loss3_mape, loss4))
+                # loss_message = 'Epoch: {:03d}, Batch_num:{:03d}, mape2: {:.4f}, mpe2: {:.4f}, mae2: {:.4f}, Loss1: {:.4f}, Loss3_mae: {:.4f}, Loss3_mape: {:.4f}, Loss4: {:.4f}'
+                # self._logger.info(loss_message.format(epoch + 1, batch_count+1, mape2, mpe2, mae2, loss, loss3_mae, loss3_mape, loss4))
+                loss_message = 'Epoch: {:03d}, Batch_num:{:03d}, mape2: {:.4f}, mpe2: {:.4f}, mae2: {:.4f}, Loss1: {:.4f}, Loss3_mape: {:.4f}'
+                self._logger.info(loss_message.format(epoch + 1, batch_count+1, mape2, mpe2, mae2, loss, loss3_mape))
 
 
                 if mode == "test":
                     loss_region_list.append(loss_region)
+                    loss_region_list_mape.append(loss_region_mape)
 
                 batch_count += 1
 
         if mode == 'val':
             # mae, mape, rmse, mvalid_sfair, mvalid_dfair= np.mean(e_loss), np.mean(e_mape), np.mean(e_rmse), np.mean(estatic_fair), np.mean(edynamic_fair)
             # return mae, mape, rmse, mvalid_sfair, mvalid_dfair
-            mae, mape, mape2, mpe2, mae2, rmse, mvalid_sfair, mvalid_dfair, mvalid_sfair_mae= np.mean(e_loss), np.mean(e_mape), np.mean(e_mape2), np.mean(e_mpe2), np.mean(e_mae2), np.mean(e_rmse), np.mean(estatic_fair), np.mean(edynamic_fair), np.mean(estatic_fair_mae)
-            return mae, mape, mape2, mpe2, mae2, rmse, mvalid_sfair, mvalid_dfair, mvalid_sfair_mae
+            mae, mape, mape2, mpe2, mae2, rmse, mvalid_sfair= np.mean(e_loss), np.mean(e_mape), np.mean(e_mape2), np.mean(e_mpe2), np.mean(e_mae2), np.mean(e_rmse), np.mean(estatic_fair)
+            return mae, mape, mape2, mpe2, mae2, rmse, mvalid_sfair
 
         elif mode == 'test':
     
             # log = 'Average Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test SFair: {:.4f}, Test DFair: {:.4f}'
             # self._logger.info(log.format(np.mean(e_loss), np.mean(e_rmse), np.mean(e_mape), np.mean(estatic_fair), np.mean(edynamic_fair)))
-            log = 'Average Test mape2: {:.4f}, mpe2: {:.4f}, mae2: {:.4f}, MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test SFair_mae: {:.4f}, Test DFair: {:.4f}, Test SFair_mape: {:.4f}'
-            self._logger.info(log.format(np.mean(e_mape2), np.mean(e_mpe2), np.mean(e_mae2), np.mean(e_loss), np.mean(e_rmse), np.mean(e_mape), np.mean(estatic_fair), np.mean(edynamic_fair), np.mean(estatic_fair_mae)))
+            log = 'Average Test mape2: {:.4f}, mpe2: {:.4f}, mae2: {:.4f}, MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test SFair_mape: {:.4f}'
+            self._logger.info(log.format(np.mean(e_mape2), np.mean(e_mpe2), np.mean(e_mae2), np.mean(e_loss), np.mean(e_rmse), np.mean(e_mape), np.mean(estatic_fair)))
 
             loss_region_tensor = torch.stack(loss_region_list,dim=0)
             print(loss_region_tensor.shape)
             mean_values = loss_region_tensor.mean(dim=0)
             print(mean_values)
+            self._logger.info("mae")
             self._logger.info(mean_values)
+
+            loss_region_tensor_mape = torch.stack(loss_region_list_mape,dim=0)
+            mean_values_mape = loss_region_tensor_mape.mean(dim=0)
+            self._logger.info("mape")
+            self._logger.info(mean_values_mape)
+
+            RSF = cal_RSF(mean_values_mape) # mean_values_mape为 list
+            self._logger.info("RSF:")
+            self._logger.info(RSF)

@@ -1,7 +1,7 @@
 import torch
 from src.base.engine import BaseEngine
 # from src.utils.metrics import masked_mape, masked_rmse
-from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae
+from src.utils.metrics import masked_mape, masked_rmse, masked_mpe, masked_mae, masked_mae_region, masked_mape_region, cal_RSF
 from src.utils.metrics_region import masked_mae2
 
 import time
@@ -221,18 +221,18 @@ class DSTAGNN_Engine(BaseEngine):
         
 
         # 将两个列表存储到文件中
-        filename1 = 'ylvalue_s{}_SD_3_1e-4_node_mpe2_S_all.pkl'.format(self._seed)
-        with open(os.path.join(self._save_path, filename1), 'wb') as f:
-            pickle.dump((yl_list_train, yl_list_val), f)
+        # filename1 = 'ylvalue_s{}_SD_3_1e-4_node_mpe2_S_all.pkl'.format(self._seed)
+        # with open(os.path.join(self._save_path, filename1), 'wb') as f:
+        #     pickle.dump((yl_list_train, yl_list_val), f)
 
-        filename2 = 'ylvalue_s{}_SD_3_1e-4_node_mae2_S_all.pkl'.format(self._seed)
-        with open(os.path.join(self._save_path, filename2), 'wb') as f:
-            pickle.dump((yl_list_train_node, yl_list_val_node), f)
+        # filename2 = 'ylvalue_s{}_SD_3_1e-4_node_mae2_S_all.pkl'.format(self._seed)
+        # with open(os.path.join(self._save_path, filename2), 'wb') as f:
+        #     pickle.dump((yl_list_train_node, yl_list_val_node), f)
 
-        # 用这个！计算的是mape！
-        filename1 = 'ylvalue_s{}_SD_3_1e-4_node_mape2_S_all.pkl'.format(self._seed)
-        with open(os.path.join(self._save_path, filename1), 'wb') as f:
-            pickle.dump((yl_list_train2, yl_list_val2), f)
+        # # 用这个！计算的是mape！
+        # filename1 = 'ylvalue_s{}_SD_3_1e-4_node_mape2_S_all.pkl'.format(self._seed)
+        # with open(os.path.join(self._save_path, filename1), 'wb') as f:
+        #     pickle.dump((yl_list_train2, yl_list_val2), f)
 
 
         self.evaluate('test', sample_list, time_T, yl_values, sample_map, district_nodes, epoch)
@@ -251,7 +251,8 @@ class DSTAGNN_Engine(BaseEngine):
         e_rmse = []
         e_mape2, e_mpe2, e_mae2 = [],[],[]
         estatic_fair_mae = []
-        loss_region_list = []
+        loss_region_list, loss_region_list_mape = [],[]
+
         
         estatic_fair, edynamic_fair =[],[]
         batch_count = 0
@@ -280,7 +281,8 @@ class DSTAGNN_Engine(BaseEngine):
                     mask_value = new_label.min()
 
                 '''看13个区域的情况'''
-                loss_region = masked_mae2(new_pred, new_label, mask_value)
+                loss_region = masked_mae_region(new_pred, new_label, mask_value)
+                loss_region_mape = masked_mape_region(new_pred, new_label, mask_value)
 
 
                 mask_value_single = torch.tensor(0)
@@ -320,6 +322,8 @@ class DSTAGNN_Engine(BaseEngine):
 
                 if mode == "test":
                     loss_region_list.append(loss_region)
+                    loss_region_list_mape.append(loss_region_mape)
+
 
                 batch_count += 1
 
@@ -340,4 +344,14 @@ class DSTAGNN_Engine(BaseEngine):
             print(loss_region_tensor.shape)
             mean_values = loss_region_tensor.mean(dim=0)
             print(mean_values)
+            self._logger.info("mae:")
             self._logger.info(mean_values)
+
+            loss_region_tensor_mape = torch.stack(loss_region_list_mape,dim=0)
+            mean_values_mape = loss_region_tensor_mape.mean(dim=0)
+            self._logger.info("mape:")
+            self._logger.info(mean_values_mape)
+
+            RSF = cal_RSF(mean_values_mape) # mean_values_mape为 list
+            self._logger.info("RSF:")
+            self._logger.info(RSF)

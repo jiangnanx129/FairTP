@@ -53,7 +53,7 @@ def get_config():
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
     logger = get_logger(log_dir, __name__, 'record_s{}_HK_3_2e-3_S2_b24_all.log'.format(args.seed))
-    logger.info(args)
+    logger.info(args) 
     logger.info("学习率None")
     
     return args, log_dir, logger

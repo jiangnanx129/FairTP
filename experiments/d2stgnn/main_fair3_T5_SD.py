@@ -56,7 +56,7 @@ def get_config():
     args = parser.parse_args()
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
-    logger = get_logger(log_dir, __name__, 'record_s{}_SD5_2_noD.log'.format(args.seed))
+    logger = get_logger(log_dir, __name__, 'record_s{}_SD5_2.log'.format(args.seed))
     logger.info(args)
     logger.info("不改变学习率。用的record_s2018_SD_3_2e-3_S2_b24，学习率默认")
     logger.info("torch.optim.lr_scheduler.MultiStepLR(optimizer_D, milestones=[1, 38, 46, 54, 62, 70, 80], gamma=0.5)")

@@ -60,6 +60,57 @@ def masked_mpe(preds, labels, null_val):
     return torch.mean(loss)
 
 
+
+'''针对区域'''
+def masked_mae_region(preds, labels, null_val):
+    if torch.isnan(null_val):
+        mask = ~torch.isnan(labels)
+    else:
+        mask = (labels != null_val)
+    mask = mask.float()
+    mask /= torch.mean((mask))
+    mask = torch.where(torch.isnan(mask), torch.zeros_like(mask), mask)
+    loss = torch.abs(preds - labels)
+    loss = loss * mask
+    loss = torch.where(torch.isnan(loss), torch.zeros_like(loss), loss)
+    # print(loss.shape) # torch.Size([64, 12, 13, 1])
+    # 计算除n维度以外的平均值，保留n维度
+    mean_tensor = loss.mean(dim=(0,1,3), keepdim=False)
+
+    return mean_tensor # shape为[13]
+
+
+def masked_mape_region(preds, labels, null_val):
+    if torch.isnan(null_val):
+        mask = ~torch.isnan(labels)
+    else:
+        mask = (labels != null_val)
+    mask = mask.float()
+    mask /= torch.mean((mask))
+    mask = torch.where(torch.isnan(mask), torch.zeros_like(mask), mask)
+    loss = torch.abs(preds - labels) / labels
+    loss = loss * mask
+    loss = torch.where(torch.isnan(loss), torch.zeros_like(loss), loss)
+    # print(loss.shape) # torch.Size([64, 12, 13, 1])
+    # 计算除n维度以外的平均值，保留n维度
+    mean_tensor = loss.mean(dim=(0,1,3), keepdim=False)
+
+    return mean_tensor # shape为[13]
+
+
+
+def cal_RSF(mean_values_mape):
+    a, b = 0, 0
+    for i in range(len(mean_values_mape)-1):
+        for j in range(i+1, len(mean_values_mape)):
+            a += abs(mean_values_mape[i]-mean_values_mape[j])
+            b +=1
+    
+    return a
+
+
+
+
 def compute_all_metrics(preds, labels, null_val):
     mae = masked_mae(preds, labels, null_val).item()
     mape = masked_mape(preds, labels, null_val).item()

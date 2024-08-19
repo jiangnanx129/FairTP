@@ -77,8 +77,7 @@ def main():
     # ptr1 = np.load(os.path.join(data_path, args.years, 'his_initial450.npz'), allow_pickle=True) # his.npz为原始数据 (N,938,ci) ci=1
     ptr1 = np.load(os.path.join(data_path, args.years, 'his_initial200.npz'), allow_pickle=True) # his.npz为原始数据 (N,938,ci) ci=1
     sample_list, sample_dict, sample_map = ptr1['sample_list'], ptr1['sample_dict'].item(), ptr1['sample_map'].item() # 字典，加上item()
-    # with open('data/sd/sd_district.json', 'rb') as file: # 打开 JSON 文件
-    #     sd_district = pickle.load(file) # 读取文件内容, 字典
+    
     with open('data/hk/district13_roadindex.json', 'r') as file: # 打开 JSON 文件
         district13_road_index = json.load(file) # 读取文件内容, 字典
 

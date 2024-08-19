@@ -52,9 +52,9 @@ def get_config():
     args = parser.parse_args()
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
-    logger = get_logger(log_dir, __name__, 'record_s{}_HK5_2.log'.format(args.seed))
+    logger = get_logger(log_dir, __name__, 'record_s{}_HK5_1.log'.format(args.seed))
     logger.info(args)
-    logger.info("不改变学习率。用的record_s2018_HK_3_1e-4_S，学习率默认")
+    logger.info("不改变学习率。用的record_s2018_HK_3_1e-4_S，学习率默认") 
     
     return args, log_dir, logger
 

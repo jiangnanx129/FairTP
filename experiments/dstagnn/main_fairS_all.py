@@ -36,7 +36,7 @@ def get_config():
     parser.add_argument('--d_k', type=int, default=32)
     parser.add_argument('--n_head', type=int, default=3)
 
-    parser.add_argument('--lrate', type=float, default=1e-4)
+    parser.add_argument('--lrate', type=float, default=3e-3) # 1e-4
     parser.add_argument('--wdecay', type=float, default=0)
     parser.add_argument('--clip_grad_value', type=float, default=0)
     parser.add_argument('--yl_values', type=float, default=0.05) # 优劣标签
@@ -47,7 +47,7 @@ def get_config():
     args = parser.parse_args()
 
     log_dir = './experiments/{}/{}/'.format(args.model_name, args.dataset)
-    logger = get_logger(log_dir, __name__, 'record_s{}_HK_3_1e-4_S_all.log'.format(args.seed))
+    logger = get_logger(log_dir, __name__, 'record_s{}_HK_3_3e-3_S_all.log'.format(args.seed)) # _HK_3_1e-4_S_all
     logger.info(args)
     logger.info("学习率不变")
     

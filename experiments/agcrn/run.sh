@@ -32,17 +32,69 @@ python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fairS_al
 python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fairS_SD_all.py --device cuda:0 --dataset HKALLSD --years 20191w --model_name agcrn --seed 2018 --bs 64
 
 
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf.py --device cuda:3 --dataset HK100 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf250.py --device cuda:1 --dataset HK250 --years 202010 --model_name agcrn --seed 2018 --bs 64
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf300.py --device cuda:2 --dataset HK300 --years 202010 --model_name agcrn --seed 2018 --bs 64
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf150.py --device cuda:0 --dataset HK150 --years 202010 --model_name agcrn --seed 2018 --bs 64
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf100.py --device cuda:3 --dataset HK100 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf250.py --device cuda:0 --dataset HK250 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf300.py --device cuda:2 --dataset HK300 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_samcf150.py --device cuda:0 --dataset HK150 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test
 
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf.py --device cuda:2 --dataset SD100 --years sd100 --model_name agcrn --seed 2018 --bs 64 
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf250.py --device cuda:0 --dataset SD250 --years sd250 --model_name agcrn --seed 2018 --bs 64 
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf300.py --device cuda:0 --dataset SD300 --years sd300 --model_name agcrn --seed 2018 --bs 64 
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf150.py --device cuda:1 --dataset SD150 --years sd150 --model_name agcrn --seed 2018 --bs 64 
-
-
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf.py --device cuda:2 --dataset SD100 --years sd100 --model_name agcrn --seed 2018 --bs 64 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf250.py --device cuda:0 --dataset SD250 --years sd250 --model_name agcrn --seed 2018 --bs 64 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf300.py --device cuda:0 --dataset SD300 --years sd300 --model_name agcrn --seed 2018 --bs 64 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_samcf150.py --device cuda:1 --dataset SD150 --years sd150 --model_name agcrn --seed 2018 --bs 64 --mode test
 
 
-python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair_fairst_1.py --device cuda:3 --dataset HKALL --years 202010 --model_name agcrn --seed 2018 --bs 64 
+
+
+
+
+
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair_fairst_1.py --device cuda:2 --dataset HKALL --years 202010 --model_name agcrn --seed 2018 --bs 64 
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair_fairst_SD_1.py --device cuda:1 --dataset HKALLSD --years 20191w --model_name agcrn --seed 2018 --bs 64 
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair_sanet_1.py --device cuda:1 --dataset HKALL --years 202010 --model_name agcrn --seed 2018 --bs 64 
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair_sanet_SD_1.py --device cuda:2 --dataset HKALLSD --years 20191w --model_name agcrn --seed 2018 --bs 64 
+
+
+
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5.py --device cuda:3 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_tcf2.py --device cuda:3 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_tcf4.py --device cuda:3 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_tcf5.py --device cuda:3 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD.py --device cuda:2 --dataset SD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_tcf2.py --device cuda:2 --dataset SD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_tcf4.py --device cuda:2 --dataset SD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_tcf5.py --device cuda:2 --dataset SD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+
+
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fairS_all.py --device cuda:2 --dataset HKALL --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fairS_SD_all.py --device cuda:3 --dataset HKALLSD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5.py --device cuda:1 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD.py --device cuda:2 --dataset SD --years 20191w --model_name 20191w --seed 2018 --bs 64 --mode test --patience 200
+
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_noS.py --device cuda:0 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_noD.py --device cuda:0 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_noAS.py --device cuda:2 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_noS.py --device cuda:0 --dataset SD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_noAS.py --device cuda:2 --dataset SD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_SD_noD.py --device cuda:0 --dataset SD --years 20191w --model_name agcrn --seed 2018 --bs 64 --mode test --patience 200
+
+
+
+
+
+
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_noS.py --device cuda:0 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_noD.py --device cuda:1 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --patience 200
+python /home/data/xjn/23largest_baseline/LargeST/experiments/agcrn/main_fair3_T5_noD.py --device cuda:1 --dataset HK2 --years 202010 --model_name agcrn --seed 2018 --bs 64 --patience 200

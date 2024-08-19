@@ -556,7 +556,7 @@ def optimize_selection_T_134_equal(nodes_by_region, sample_num, values_region, v
 
 
 
-# YES 14采样
+# 14采样
 def optimize_selection_T_14(nodes_by_region, sample_num, values_node, device ):
     '''
     nodes_by_region：所有节点分区情况，938个节点
@@ -961,7 +961,7 @@ def optimize_selection_withfair(values_region, values_node, nodes_by_region, sam
 
 
 
-'''把新的采样结果，sample_list添加到node_count_global字典中, dynamic_cal5_global_T4'''
+'''YES:把新的采样结果，sample_list添加到node_count_global字典中, dynamic_cal5_global_T4'''
 def calcute_global_dic(node_count_global, sample_list):
 
     for node in sample_list:
